@@ -1,0 +1,49 @@
+server {
+ listen 80;
+ server_name optimize.my;
+ root /var/www/$host/;
+ index index.php index.html;
+
+ access_log /var/log/nginx/optimize.my_access.log;
+ error_log /var/log/nginx/optimize.my_error.log info;
+
+ error_page 404 index.php;
+
+ location / {
+ try_files $uri @opencart;
+ }
+
+ location @opencart {
+ rewrite ^/(.+)$ /index.php?_route_=$1 last;
+ }
+
+ location ~ /\.ht {
+ deny all;
+ }
+
+ location ~* (\.(tpl|ini))$ {
+ deny all;
+ }
+
+ if (!-e $request_filename) {
+ rewrite ^/(.*)$ /index.php?_route_=$1 last;
+ }
+
+ # serve static files directly
+ location ~* ^.+\.(jpg|jpeg|gif|css|png|js|ico)$ {
+ access_log off;expires 1d;
+ }
+
+ location ~ \.php$ {
+ fastcgi_pass 127.0.0.1:9000;fastcgi_index index.php;
+ fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+ include /etc/nginx/fastcgi_params;
+ fastcgi_param REDIRECT_STATUS 200;
+ fastcgi_read_timeout 3600;
+
+ proxy_set_header X-Real-IP $remote_addr;
+ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+ proxy_set_header Host $http_host;
+ proxy_redirect off;
+ }
+}
